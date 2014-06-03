@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="de.kaltpost.ivotgoat.app" version="0.0.1" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+    <name>I Vote Goat</name>
+    <description>
+        The "I Vote Goat App" 
+    </description>
+    <author email="sw@kaltpost.de" href="http://gpio.kaltpost.de">
+        Apache Cordova Team
+    </author>
+    <content src="index.html" />
+    <access origin="*" />
+</widget>
