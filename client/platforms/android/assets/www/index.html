@@ -5,12 +5,13 @@
 <link rel="stylesheet" href="./jquery/jquery.mobile-1.4.2.min.css">
 <script src="./jquery/jquery-1.11.1.min.js"></script>
 <script src="./jquery/jquery.mobile-1.4.2.min.js"></script>
+<script src="./js/ivg.js"></script>
 </head>
 <body>
 
 <div data-role="page" id="pageone">
   <div data-role="header">
-    <h1>I Vore Gote</h1>
+    <h1>I Vote Gote</h1>
   </div>
 
   <div data-role="main" class="ui-content">
@@ -21,30 +22,11 @@
   <div data-role="footer">
     <h1>kaltpost.de</h1>
   </div>
-</div> 
+</div>
+
 <script>
-
-function create_user_list()
-{
-    $.ajax({
-        url: 'http://172.16.100.21:8080/users',
-        type: 'GET',
-        dataType: 'json',
-        error : function (){ document.title='error'; },
-        success: function (data) {
-            list = "";
-            for(i = 0; i < data["users"].length; i++)
-            {
-                list += '<div data-role="collapsible"><h3>' + data["users"][i]["fullname"] + '</h3>'
-                list += '<p><a href="#anylink" class="ui-btn ui-icon-alert ui-btn-icon-left">Vote Gote</a></p>'
-                list += '</div>';
-            }
-            $('#users').html(list).collapsibleset('refresh');
-        }
-    });
-}
-
-create_user_list();
+ivg.setBaseUrl('http://172.16.100.21:8080');
+ivg.fillUserList('#users');
 </script>
 
 </body>

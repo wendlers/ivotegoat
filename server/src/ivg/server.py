@@ -61,7 +61,8 @@ class Server:
         bot.route('/points', 'POST', self.handle_add_point)
         bot.route('/points/<nickname>', 'DELETE', self.handle_del_user_points)
 
-        bot.route('/<filename>', 'GET', self.handle_static)
+        bot.route('/<subdir>/<filename>', 'GET', self.handle_static)
+        bot.route('/', 'GET', self.handle_index)
 
     def handle_list_users(self):
         """
@@ -148,14 +149,25 @@ class Server:
 
         self.dp.del_user_points(nickname)
 
-    def handle_static(self, filename):
+    def handle_index(self):
         """
 
         :param filename:
         :return:
         """
 
-        return bot.static_file(filename, root=self.doc_root)
+        return bot.static_file("index.html", root=self.doc_root)
+
+    def handle_static(self, subdir, filename):
+        """
+
+        :param filename:
+        :return:
+        """
+
+        path = subdir + "/" + filename
+
+        return bot.static_file(path, root=self.doc_root)
 
 
 if __name__ == "__main__":
