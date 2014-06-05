@@ -21,7 +21,7 @@ import bottle as bot
 import datapool as dp
 import config as cfg
 import pointdecay as pdec
-
+import logging as log
 
 class Server:
 
@@ -171,6 +171,7 @@ class Server:
 
 
 if __name__ == "__main__":
+
+    log.basicConfig(level=log.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+    log.info("Server started")
     s = Server()
-
-

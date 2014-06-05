@@ -19,6 +19,8 @@
 
 import sqlite3 as sqlite
 import config as cfg
+import logging as log
+
 from singleton import Singleton
 
 
@@ -50,7 +52,8 @@ class DataPool:
             cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS index_users_nickname ON users (nickname)")
 
             # user points table
-            cur.execute("CREATE TABLE IF NOT EXISTS points(nickname TEXT, weight INT)")
+            cur.execute("CREATE TABLE IF NOT EXISTS points(id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        "nickname TEXT, weight INT)")
 
     def list_users(self, with_points=False):
 
@@ -136,20 +139,21 @@ class DataPool:
 
         with self.con:
             cur = self.con.cursor()
-            cur.execute("SELECT weight FROM points WHERE nickname = '%s' ORDER BY weight ASC LIMIT 1" % nickname)
+            cur.execute("SELECT weight FROM points WHERE id = (SELECT min(id) FROM points WHERE nickname = '%s')" %
+                        nickname)
 
             row = cur.fetchone()
 
             if not row:
-                print("User %s has no points" % nickname)
                 return
 
             if row[0] - decay <= 0:
-                cur.execute("DELETE FROM points WHERE nickname = '%s' ORDER BY weight ASC LIMIT 1" % nickname)
-                print("deleted point for user: %s" % nickname)
+                cur.execute("DELETE FROM points WHERE id = (SELECT min(id) FROM points WHERE nickname = '%s')" % nickname)
+                log.info("deleted point for user: %s" % nickname)
             else:
-                cur.execute("UPDATE points SET weight = weight-%d WHERE nickname = '%s' ORDER BY weight ASC LIMIT 1" % (decay, nickname))
-                print("decayed point for user: %s (%d)" % (nickname, decay))
+                cur.execute("UPDATE points SET weight = weight-%d WHERE "
+                            "id = (SELECT min(id) FROM points  WHERE nickname = '%s')" % (decay, nickname))
+                log.info("decayed point for user: %s (%d)" % (nickname, decay))
 
     def decay_points(self, decay):
 
@@ -160,5 +164,4 @@ class DataPool:
             rows = cur.fetchall()
 
             for row in rows:
-                print("Decaying for user: %s" % row[0])
                 self.decay_user_points(row[0], decay)

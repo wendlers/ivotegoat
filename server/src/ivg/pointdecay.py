@@ -21,6 +21,7 @@ import threading as thrd
 import datapool as dp
 import config as cfg
 import time
+import logging as log
 
 
 class PointDecayThread(thrd.Thread):
@@ -37,9 +38,8 @@ class PointDecayThread(thrd.Thread):
 
         while True:
             time.sleep(self.decay_interval)
-            print("Decaying points")
 
             try:
                 self.dp.decay_points(cfg.DECAY_AMOUNT)
             except Exception as e:
-                print("Error while decaying points: %s" % e.__str__())
+                log.error("Error while decaying points: %s" % e.__str__())

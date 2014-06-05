@@ -26,7 +26,7 @@ var ivg = {
 
                     list += '</div>';
                     list += '<a href="javascript:ivg.addPoint(\'' + data["users"][i]["nickname"] + '\', 60)" ';
-                    list += 'class="ui-btn">Add Gote</a></p>';
+                    list += 'class="ui-btn">Bock hinzuf&uuml;gen</a></p>';
                     list += '</div>';
                 }
                 $(tagId).html(list).collapsibleset('refresh');
