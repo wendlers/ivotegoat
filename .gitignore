@@ -1,0 +1,4 @@
+*.pyc
+ant-build
+ant-gen
+client/platforms/android/assets/www/*
