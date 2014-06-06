@@ -61,7 +61,7 @@ class Server:
         bot.route('/points', 'POST', self.handle_add_point)
         bot.route('/points/<nickname>', 'DELETE', self.handle_del_user_points)
 
-        bot.route('/<subdir>/<filename>', 'GET', self.handle_static)
+        bot.route('/<subdir>/<filename:path>', 'GET', self.handle_static)
         bot.route('/', 'GET', self.handle_index)
 
     def handle_list_users(self):
