@@ -24,6 +24,7 @@ HTTP_DOC_ROOT = '../../../client/www'
 DATA_BASE = '../../db/ivotegote.db'
 
 MAX_USER_POINTS = 10
+OFFTIME_USER_POINTS = 60
 
 DECAY_AMOUNT = 1
 DECAY_INTERVAL = 60

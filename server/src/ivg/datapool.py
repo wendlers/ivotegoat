@@ -53,7 +53,7 @@ class DataPool:
 
             # user points table
             cur.execute("CREATE TABLE IF NOT EXISTS points(id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                        "nickname TEXT, weight INT)")
+                        "nickname TEXT, weight INT, created datetime)")
 
     def list_users(self, with_points=False):
 
@@ -105,7 +105,16 @@ class DataPool:
     def add_point(self, nickname, weight):
         with self.con:
             cur = self.con.cursor()
-            cur.execute("INSERT INTO points (nickname, weight) values ('%s', %d)" % (nickname, weight))
+            cur.execute("INSERT INTO points (nickname, weight, created) values ('%s', %d, DATETIME('now'))" %
+                        (nickname, weight))
+
+    def count_points_offtime(self, nickname, offtime):
+        with self.con:
+            cur = self.con.cursor()
+            cur.execute("SELECT COUNT(created) FROM points WHERE nickname='%s' AND STRFTIME('%%s', DATETIME('now')) - "
+                        "STRFTIME('%%s', created) < %d" % (nickname, offtime))
+            res = cur.fetchone()
+            return res[0]
 
     def count_points(self, nickname):
         with self.con:

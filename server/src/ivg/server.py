@@ -22,6 +22,7 @@ import datapool as dp
 import config as cfg
 import pointdecay as pdec
 import logging as log
+import sqlite3 as sqlite
 
 class Server:
 
@@ -85,14 +86,17 @@ class Server:
         fullname = bot.request.forms.get('fullname')
 
         if not nickname or len(nickname) == 0:
+            log.error("Missing parameter: nickname")
             return bot.abort(code=400, text="Missing parameter: nickname")
 
         if not fullname or len(fullname) == 0:
+            log.error("Missing parameter: fullname")
             return bot.abort(code=400, text="Missing parameter: fullname")
 
         try:
             self.dp.add_user(nickname, fullname)
-        except Exception as e:
+        except sqlite.IntegrityError as e:
+            log.error("SQL - %s" % e.__str__())
             return bot.abort(code=400, text=e.__str__())
 
         return bot.abort(code=201, text="Added user: %s" % nickname)
@@ -123,19 +127,29 @@ class Server:
         weight = int(bot.request.forms.get('weight'))
 
         if not nickname or len(nickname) == 0:
+            log.error("Missing parameter: nickname")
             return bot.abort(code=400, text="Missing parameter: nickname")
 
         if not weight:
+            log.error("Missing parameter: weight")
             return bot.abort(code=400, text="Missing parameter: weight")
 
         try:
             num_points = self.dp.count_points(nickname)
             if num_points >= cfg.MAX_USER_POINTS:
-                return bot.abort(code=400, text="Maximum number of points reached: %s (%d)" %
+                log.info("Maximum number of points reached: %s (%d)" % (nickname, num_points))
+                return bot.abort(code=460, text="Maximum number of points reached: %s (%d)" %
                                                 (nickname, num_points))
-            else:
-                self.dp.add_point(nickname, weight)
-        except Exception as e:
+
+            offtime_points = self.dp.count_points_offtime(nickname, cfg.OFFTIME_USER_POINTS)
+            if offtime_points > 0:
+                log.info("User already got points within off time: %s (%d)" % (nickname, offtime_points))
+                return bot.abort(461, "User already got points within off time: %s (%d)"
+                                 % (nickname, offtime_points))
+
+            self.dp.add_point(nickname, weight)
+        except sqlite.IntegrityError as e:
+            log.error("SQL - %s" % e.__str__())
             return bot.abort(code=400, text=e.__str__())
 
         return bot.abort(code=201, text="Added point to user: %s (%d)" % (nickname, weight))

@@ -20,14 +20,9 @@ var ivg = {
                 {
                     list += '<div data-role="collapsible" id="' + data["users"][i]["nickname"] + '"><h3>' + data["users"][i]["fullname"] + '</h3>';
                     list += '<p><div id="' + data["users"][i]["nickname"] + '-points">';
-
-                    for(j = 0; j < data["users"][i]["points"].length; j++)
-                    {
-                        list += '<img src="./img/goat.png"/>';
-                    }
-
                     list += '</div>';
-                    list += '<a href="javascript:ivg.addPoint(\'' + data["users"][i]["nickname"] + '\', 60)" ';
+                    list += '<a id="' + data["users"][i]["nickname"] + '-btn" ';
+                    list += 'href="javascript:ivg.addPoint(\'' + data["users"][i]["nickname"] + '\', 120)" ';
                     list += 'class="ui-btn">Bock hinzuf&uuml;gen</a></p>';
                     list += '</div>';
                 }
@@ -46,6 +41,7 @@ var ivg = {
     updateUser: function(nickname)
     {
         $.mobile.loading("show");
+        $('#' + nickname + '-btn').addClass('ui-disabled');
 
         $.ajax({
             url: this.baseUrl + '/users/' + nickname,
@@ -53,30 +49,41 @@ var ivg = {
             dataType: 'json',
             error : function () {
                 $.mobile.loading("hide");
+                $('#' + nickname + '-btn').removeClass('ui-disabled');
                 ivg.showServerError();
             },
             success: function (data) {
                 list = "";
                 for(i = 0; i < data["user"]["points"].length; i++)
                 {
-                    list += '<img src="./img/goat.png"/>';
+                    list += '<img src="./img/goat' + i + '.png"/>';
                 }
                 $('#' + nickname + '-points').html(list);
                 $.mobile.loading("hide");
+                $('#' + nickname + '-btn').removeClass('ui-disabled');
             }
         });
     },
 
     addPoint: function(nickname, weight)
     {
+         $.mobile.loading("show");
+         $('#' + nickname + '-btn').addClass('ui-disabled');
+
          $.ajax({
             url: this.baseUrl + '/points',
             type: 'POST',
             data: { 'nickname': nickname, 'weight': weight },
             error : function (xhr, status, text) {
-              if(xhr.status == 400)
+              $.mobile.loading("hide");
+              $('#' + nickname + '-btn').removeClass('ui-disabled');
+              if(xhr.status == 460)
               {
                 ivg.showMaxPointsError();
+              }
+              else if(xhr.status == 461)
+              {
+                ivg.showOffTimePointsError();
               }
               else
               {
@@ -84,6 +91,8 @@ var ivg = {
               }
             },
             success: function (data) {
+                $.mobile.loading("hide");
+                $('#' + nickname + '-btn').removeClass('ui-disabled');
                 ivg.updateUser(nickname);
             }
         });
@@ -100,10 +109,11 @@ var ivg = {
 
     showMaxPointsError: function()
     {
-        $.mobile.changePage('#maxPointsError', {
-            transition: 'pop',
-            changeHash: true,
-            role: 'dialog'
-        });
+        $("#maxPointsError").popup("open");
+    },
+
+    showOffTimePointsError: function()
+    {
+        $("#offTimePointsError").popup("open");
     },
 };
