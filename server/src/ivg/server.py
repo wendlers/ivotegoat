@@ -23,6 +23,9 @@ import config as cfg
 import pointdecay as pdec
 import logging as log
 import sqlite3 as sqlite
+import optparse as par
+
+from daemonize import Daemonize
 
 class Server:
 
@@ -31,20 +34,30 @@ class Server:
 
 
         :type self: object
-        :param host:
-        :param port:
         """
 
-        self.doc_root = cfg.HTTP_DOC_ROOT
+        try:
 
-        self.setup_routing()
+            log.basicConfig(level=cfg.LOG_LEVEL, format='%(asctime)s - %(levelname)s - %(message)s', filename=cfg.LOG_FILE)
+            log.info("%s: %s", cfg.APP, cfg.VERSION)
 
-        self.dp = dp.DataPool()
+            log.debug("Setting up routing")
+            self.setup_routing()
 
-        self.pdec = pdec.PointDecayThread()
-        self.pdec.start()
+            log.debug("Creating data pool")
+            self.dp = dp.DataPool()
 
-        bot.run(host=cfg.HTTP_HOST, port=cfg.HTTP_PORT, quiet=False)
+            log.debug("Starting point decay thread")
+            self.pdec = pdec.PointDecayThread()
+            self.pdec.start()
+
+            log.debug("Starting HTTP server")
+            log.info("HTTP Server: %s:%s (%s)" % (cfg.HTTP_HOST, cfg.HTTP_PORT, cfg.HTTP_DOC_ROOT))
+            bot.run(host=cfg.HTTP_HOST, port=cfg.HTTP_PORT, quiet=True)
+
+        except Exception as e:
+            log.error("ABORTING - %s" % e.__str__())
+            exit(1)
 
     def setup_routing(self):
         """
@@ -170,7 +183,7 @@ class Server:
         :return:
         """
 
-        return bot.static_file("index.html", root=self.doc_root)
+        return bot.static_file("index.html", root=cfg.HTTP_DOC_ROOT)
 
     def handle_static(self, subdir, filename):
         """
@@ -181,11 +194,75 @@ class Server:
 
         path = subdir + "/" + filename
 
-        return bot.static_file(path, root=self.doc_root)
+        return bot.static_file(path, root=cfg.HTTP_DOC_ROOT)
+
+
+def server_main_daemon():
+
+    log.basicConfig(level=log.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s', filename='/tmp/ivgd.log')
+    Server()
+
+
+def server_main_foreground():
+
+    log.basicConfig(level=log.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+    Server()
 
 
 if __name__ == "__main__":
 
-    log.basicConfig(level=log.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-    log.info("Server started")
-    s = Server()
+    usage = "usage: %prog [options]"
+
+    parser = par.OptionParser(usage)
+    parser.add_option("-d", "--daemonize", action="store_true",
+                      help="run as daemon")
+    parser.add_option("-p", "--pid",  dest="pid", default="ivgd.pid",
+                      help="pid file when run as daemon")
+    parser.add_option("-l", "--logfile",  dest="logfile", default=cfg.LOG_FILE,
+                      help="log file")
+    parser.add_option("-L", "--loglevel",  dest="loglevel", default="debug",
+                      help="log level (debug|info|warning|error)")
+    parser.add_option("-H", "--host",  dest="host", default=cfg.HTTP_HOST,
+                      help="host name/ip to bind server to")
+    parser.add_option("-P", "--port",  dest="port", default=cfg.HTTP_PORT,
+                      help="port to bind server to")
+    parser.add_option("-D", "--docroot",  dest="docroot", default=cfg.HTTP_DOC_ROOT,
+                      help="document root of server")
+    parser.add_option("-B", "--database",  dest="database", default=cfg.DATA_BASE,
+                      help="location of database")
+    parser.add_option("-I", "--decayinterval",  dest="decayinterval", default=cfg.DECAY_INTERVAL,
+                      help="interval within to decay points")
+    parser.add_option("-A", "--decayamount",  dest="decayamount", default=cfg.DECAY_AMOUNT,
+                      help="amount (weight) to remove each decay interval")
+    parser.add_option("-T", "--offtime",  dest="offtime", default=cfg.OFFTIME_USER_POINTS,
+                      help="off time between each new user points")
+
+    (options, args) = parser.parse_args()
+
+    if options.loglevel == "debug":
+        cfg.LOG_LEVEL = log.DEBUG
+    elif options.loglevel == "info":
+        cfg.LOG_LEVEL = log.INFO
+    elif options.loglevel == "warning":
+        cfg.LOG_LEVEL = log.WARNING
+    elif options.loglevel == "error":
+        cfg.LOG_LEVEL = log.ERROR
+    else:
+        print("Unkown log level: %s" % options.loglevel)
+        exit(1)
+
+    # overwrite defaults ...
+    cfg.LOG_FILE = options.logfile
+    cfg.HTTP_HOST = options.host
+    cfg.HTTP_PORT = int(options.port)
+    cfg.HTTP_DOC_ROOT = options.docroot
+    cfg.DATA_BASE = options.database
+    cfg.DECAY_INTERVAL = int(options.decayinterval)
+    cfg.DECAY_AMOUNT = int(options.decayamount)
+    cfg.OFFTIME_USER_POINTS = int(options.offtime)
+
+    if options.daemonize:
+        daemon = Daemonize(app="ivgd", pid=options.pid, action=Server)
+        daemon.start()
+    else:
+        Server()

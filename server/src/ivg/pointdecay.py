@@ -32,12 +32,12 @@ class PointDecayThread(thrd.Thread):
         self.daemon = True
         self.dp = dp.DataPool()
 
-        self.decay_interval = cfg.DECAY_INTERVAL
+        log.info("Decay interval: %d (%d)" % (cfg.DECAY_INTERVAL, cfg.DECAY_AMOUNT))
 
     def run(self):
 
         while True:
-            time.sleep(self.decay_interval)
+            time.sleep(cfg.DECAY_INTERVAL)
 
             try:
                 self.dp.decay_points(cfg.DECAY_AMOUNT)

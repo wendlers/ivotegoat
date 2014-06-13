@@ -34,8 +34,10 @@ class DataPool:
         """
 
         self.con = sqlite.connect(cfg.DATA_BASE, check_same_thread=False)
-        
         self.setup_tables()
+
+        log.info("Data base: %s" % cfg.DATA_BASE)
+        log.info("Point off-time: %d" % cfg.OFFTIME_USER_POINTS)
 
     def setup_tables(self):
         """

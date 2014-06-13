@@ -17,14 +17,22 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
+import logging as log
+
+APP = "ivgd"
+VERSION = "0.0.1 alpha"
+
 HTTP_HOST = '0.0.0.0'
 HTTP_PORT = 8080
-HTTP_DOC_ROOT = '../../../client/www'
+HTTP_DOC_ROOT = '/opt/ivotegoat/client/www'
 
-DATA_BASE = '../../db/ivotegote.db'
+DATA_BASE = '/opt/ivotegoat/server/db/ivotegote.db'
 
 MAX_USER_POINTS = 10
 OFFTIME_USER_POINTS = 60
 
 DECAY_AMOUNT = 1
 DECAY_INTERVAL = 60
+
+LOG_LEVEL = log.DEBUG
+LOG_FILE = None
