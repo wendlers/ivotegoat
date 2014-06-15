@@ -24,6 +24,7 @@ import pointdecay as pdec
 import logging as log
 import sqlite3 as sqlite
 import optparse as par
+import loadplugins as plugins
 
 from daemonize import Daemonize
 
@@ -46,6 +47,9 @@ class Server:
 
             log.debug("Creating data pool")
             self.dp = dp.DataPool()
+
+            log.debug("Loading plugins")
+            plugins.load("plugins")
 
             log.debug("Starting point decay thread")
             self.pdec = pdec.PointDecayThread()
@@ -195,18 +199,6 @@ class Server:
         path = subdir + "/" + filename
 
         return bot.static_file(path, root=cfg.HTTP_DOC_ROOT)
-
-
-def server_main_daemon():
-
-    log.basicConfig(level=log.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s', filename='/tmp/ivgd.log')
-    Server()
-
-
-def server_main_foreground():
-
-    log.basicConfig(level=log.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-    Server()
 
 
 if __name__ == "__main__":

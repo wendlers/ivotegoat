@@ -35,9 +35,14 @@ class DataPool:
 
         self.con = sqlite.connect(cfg.DATA_BASE, check_same_thread=False)
         self.setup_tables()
+        self.event_handlers = []
 
         log.info("Data base: %s" % cfg.DATA_BASE)
         log.info("Point off-time: %d" % cfg.OFFTIME_USER_POINTS)
+
+    def register_event_handler(self, handler):
+        log.info("Registered new handler: %s" % handler.name)
+        self.event_handlers.append(handler)
 
     def setup_tables(self):
         """
@@ -110,6 +115,10 @@ class DataPool:
             cur.execute("INSERT INTO points (nickname, weight, created) values ('%s', %d, DATETIME('now'))" %
                         (nickname, weight))
 
+        # notify registered handler
+        for h in self.event_handlers:
+            h.add_point(nickname, self.count_points(nickname))
+
     def count_points_offtime(self, nickname, offtime):
         with self.con:
             cur = self.con.cursor()
@@ -146,6 +155,10 @@ class DataPool:
             cur = self.con.cursor()
             cur.execute("DELETE FROM points WHERE nickname = '%s'" % nickname)
 
+        # notify registered handler
+        for h in self.event_handlers:
+            h.del_point(nickname, self.count_points(nickname))
+
     def decay_user_points(self, nickname, decay):
 
         with self.con:
@@ -161,6 +174,11 @@ class DataPool:
             if row[0] - decay <= 0:
                 cur.execute("DELETE FROM points WHERE id = (SELECT min(id) FROM points WHERE nickname = '%s')" % nickname)
                 log.info("deleted point for user: %s" % nickname)
+
+                # notify registered handler
+                for h in self.event_handlers:
+                    h.del_point(nickname, self.count_points(nickname))
+
             else:
                 cur.execute("UPDATE points SET weight = weight-%d WHERE "
                             "id = (SELECT min(id) FROM points  WHERE nickname = '%s')" % (decay, nickname))
