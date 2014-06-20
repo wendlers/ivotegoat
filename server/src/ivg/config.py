@@ -28,11 +28,14 @@ HTTP_DOC_ROOT = '/opt/ivotegoat/client/www'
 
 DATA_BASE = '/opt/ivotegoat/server/db/ivotegote.db'
 
-MAX_USER_POINTS = 10
-OFFTIME_USER_POINTS = 60
-
-DECAY_AMOUNT = 1
-DECAY_INTERVAL = 60
-
 LOG_LEVEL = log.DEBUG
 LOG_FILE = None
+
+# default sysconfig - might be overwritten from DB values
+sysconf = {
+    "PLUGIN_DIRS": "../plugins",
+    "POINTS_MAX": 4,
+    "POINTS_OFFTIME": 60,
+    "DECAY_AMOUNT": 1,
+    "DECAY_INTERVAL": 60
+}

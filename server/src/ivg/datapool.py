@@ -38,9 +38,10 @@ class DataPool:
         self.event_handlers = []
 
         log.info("Data base: %s" % cfg.DATA_BASE)
-        log.info("Point off-time: %d" % cfg.OFFTIME_USER_POINTS)
+        log.info("Point off-time: %d" % cfg.sysconf["POINTS_OFFTIME"])
 
     def register_event_handler(self, handler):
+
         log.info("Registered new handler: %s" % handler.name)
         self.event_handlers.append(handler)
 
@@ -61,6 +62,188 @@ class DataPool:
             # user points table
             cur.execute("CREATE TABLE IF NOT EXISTS points(id INTEGER PRIMARY KEY AUTOINCREMENT, "
                         "nickname TEXT, weight INT, created datetime)")
+
+            # plugin config
+            cur.execute("CREATE TABLE IF NOT EXISTS plugconf(plugin TEXT, key TEXT, value TEXT, type INT)")
+            cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS index_plugconf_plugin_key ON plugconf (plugin, key)")
+
+            # system config
+            cur.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'sysconf'")
+            row = cur.fetchone()
+
+            if row:
+                # read settings from table
+                cur.execute("SELECT key, value, type FROM sysconf")
+                rows = cur.fetchall()
+
+                for row in rows:
+                    key = row[0]
+                    val = row[1]
+                    typ = row[2]
+
+                    try:
+                        if typ == 1:
+                            val = int(row[1])
+
+                        log.debug("Overwriting key:value in sysconf: %s=%s (%d)" % (key, val, typ))
+                        cfg.sysconf[key] = val
+
+                    except Exception as e:
+                        log.warning("SYSCONF - %s" & e.__str__())
+
+            else:
+                # write defaults to table
+                cur.execute("CREATE TABLE sysconf(key TEXT, value TEXT, type INT)")
+                cur.execute("CREATE UNIQUE INDEX index_sysconf_key ON sysconf (key)")
+
+                for key in cfg.sysconf:
+
+                    val = cfg.sysconf[key]
+                    typ = 0
+
+                    if isinstance(val, int):
+                        typ = 1
+
+                    log.debug("Adding default key:value to sysconf: %s=%s (%d)" % (key, val, typ))
+                    cur.execute("INSERT INTO sysconf ('key', 'value', 'type') values ('%s', '%s', %d)" %
+                                (key, val, typ))
+
+    def list_sysconf(self):
+
+        conf = {'sysconf': []}
+
+        with self.con:
+            cur = self.con.cursor()
+            cur.execute("SELECT key, value, type FROM sysconf")
+
+            rows = cur.fetchall()
+
+            for row in rows:
+                if row[2] == 1:
+                    conf['sysconf'].append({'key': row[0], 'value': int(row[1])})
+                else:
+                    conf['sysconf'].append({'key': row[0], 'value': row[1]})
+
+        return conf
+
+    def set_sysconf(self, key, val):
+
+        with self.con:
+            cur = self.con.cursor()
+            cur.execute("SELECT value, type FROM sysconf WHERE key = '%s'" % key)
+
+            row = cur.fetchone()
+
+            typ = 0
+
+            if isinstance(val, int):
+                typ = 1
+
+            if row:
+                cur.execute("UPDATE sysconf set value = '%s', type = %d WHERE key = '%s'" % (val, typ, key))
+            else:
+                cur.execute("INSERT INTO sysconf ('key', 'value', 'type') values ('%s', '%s', %d)" % (key, val, typ))
+
+            cfg.sysconf[key] = val
+
+    def get_sysconf(self, key):
+
+        with self.con:
+            cur = self.con.cursor()
+            cur.execute("SELECT value, type FROM sysconf WHERE key = '%s'" % key)
+
+            row = cur.fetchone()
+
+            if row:
+                if row[1] == 1:
+                    return int(row[0])
+                else:
+                    return row[0]
+            elif cfg.sysconf[key]:
+                return cfg.sysconf[key]
+            else:
+                return None
+
+    def del_sysconf(self, key):
+
+        with self.con:
+            cur = self.con.cursor()
+            cur.execute("DELETE FROM sysconf WHERE key = '%s'" % key)
+
+    def list_plugins(self):
+
+        plugins = {'plugins': []}
+
+        with self.con:
+            cur = self.con.cursor()
+            cur.execute("SELECT plugin FROM plugconf GROUP BY plugin")
+
+            rows = cur.fetchall()
+
+            for row in rows:
+                plugins['plugins'].append({'plugin': row[0]})
+
+        return plugins
+
+    def list_plugconf(self, plugin):
+
+        conf = {'plugconf': []}
+
+        with self.con:
+            cur = self.con.cursor()
+            cur.execute("SELECT key, value, type FROM plugconf WHERE plugin = '%s'" % plugin)
+
+            rows = cur.fetchall()
+
+            for row in rows:
+                if row[2] == 1:
+                    conf['plugconf'].append({'key': row[0], 'value': int(row[1])})
+                else:
+                    conf['plugconf'].append({'key': row[0], 'value': row[1]})
+
+        return conf
+
+    def set_plugconf(self, plugin, key, val):
+
+        with self.con:
+            cur = self.con.cursor()
+            cur.execute("SELECT value, type FROM plugconf WHERE plugin = '%s' AND key = '%s'" % (plugin, key))
+
+            row = cur.fetchone()
+
+            typ = 0
+
+            if isinstance(val, int):
+                typ = 1
+
+            if row:
+                cur.execute("UPDATE plugconf set value = '%s', type = %d WHERE plugin = '%s' AND key = '%s'" %
+                            (val, typ, plugin, key))
+            else:
+                cur.execute("INSERT INTO plugconf ('plugin', 'key', 'value', 'type') values ('%s', '%s', '%s', %d)" %
+                            (plugin, key, val, typ))
+
+    def get_plugconf(self, plugin, key):
+
+        with self.con:
+            cur = self.con.cursor()
+            cur.execute("SELECT value, type FROM plugconf WHERE plugin = '%s' AND key = '%s'" % (plugin, key))
+
+            row = cur.fetchone()
+
+            if row:
+                if row[1] == 1:
+                    return int(row[0])
+                else:
+                    return row[0]
+            else:
+                return None
+
+    def del_plugconf(self, plugin, key):
+
+        with self.con:
+            cur = self.con.cursor()
+            cur.execute("DELETE FROM plugconf WHERE plugin = '%s' AND key = '%s'" % (plugin, key))
 
     def list_users(self, with_points=False):
 

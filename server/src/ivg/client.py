@@ -95,6 +95,89 @@ class Client:
 
         return res.json()
 
+    def set_sysconf(self, key, value):
+
+        try:
+            int(value)
+            form_data = {'value': value, 'type': 'I'}
+        except Exception:
+            form_data = {'value': value, 'type': 'S'}
+
+        res = req.post("%s/sys/%s" % (self.base_url, key), data=form_data)
+
+        if not res.status_code == 200:
+            return False
+
+        return True
+
+    def set_plugconf(self, plugin, key, value):
+
+        try:
+            int(value)
+            form_data = {'value': value, 'type': 'I'}
+        except Exception:
+            form_data = {'value': value, 'type': 'S'}
+
+        res = req.post("%s/plugins/%s/%s" % (self.base_url, plugin, key), data=form_data)
+
+        if not res.status_code == 200:
+            return False
+
+        return True
+
+    def get_sysconf(self, key):
+
+        res = req.get("%s/sys/%s" % (self.base_url, key))
+
+        if not res.status_code == 200:
+            return False
+
+        return res.json()
+
+    def get_plugconf(self, plugin, key):
+
+        res = req.get("%s/plugins/%s/%s" % (self.base_url, plugin, key))
+
+        if not res.status_code == 200:
+            return False
+
+        return res.json()
+
+    def del_plugconf(self, plugin, key):
+
+        res = req.delete("%s/plugins/%s/%s" % (self.base_url, plugin, key))
+
+        if not res.status_code == 200:
+            return False
+
+        return True
+
+    def del_sysconf(self, key):
+
+        res = req.delete("%s/sys/%s" % (self.base_url, key))
+
+        if not res.status_code == 200:
+            return False
+
+        return True
+
+    def list_sysconf(self):
+
+        res = req.get("%s/sys" % self.base_url)
+
+        if not res.status_code == 200:
+            return False
+
+        return res.json()
+
+    def list_plugconf(self, plugin):
+
+        res = req.get("%s/plugins/%s" % (self.base_url, plugin))
+
+        if not res.status_code == 200:
+            return False
+
+        return res.json()
 
 def main():
 
@@ -119,6 +202,16 @@ def main():
                       help="Users full name")
     parser.add_option("-w", "--weight", dest="weight",
                       help="Weight of point")
+    parser.add_option("-C", "--setsys", action="store_true",
+                      help="Set sysconf")
+    parser.add_option("-c", "--setplug", dest="setplug",
+                      help="Set plug conf")
+    parser.add_option("-k", "--key", dest="key",
+                      help="Configuration key to show/add/modify")
+    parser.add_option("-x", "--delkey", dest="delkey",
+                      help="Configuration key to delete")
+    parser.add_option("-v", "--value", dest="value",
+                      help="Configuration value")
 
     (options, args) = parser.parse_args()
 
@@ -200,6 +293,53 @@ def main():
             else:
                 parser.error("missing parameters")
 
+        elif options.setsys:
+
+            if options.key and options.value:
+                if not cli.set_sysconf(options.key, options.value):
+                    print("Failed to set sysconf")
+                    exit(1)
+            elif options.key:
+                res = cli.get_sysconf(options.key)
+                if res and not res['value'] is None:
+                    print("%s=%s" % (res['key'], res['value']))
+                else:
+                    print("Failed to get sysconf")
+                    exit(1)
+            elif options.delkey:
+                if not cli.del_sysconf(options.delkey):
+                    print("Failed to delete sysconf")
+                    exit(1)
+                else:
+                    print("Sysconf deleted")
+            else:
+                res = cli.list_sysconf()
+                for conf in res["sysconf"]:
+                    print("%s=%s" % (conf['key'], conf['value']))
+
+        elif options.setplug:
+
+            if options.key and options.value:
+                if not cli.set_plugconf(options.setplug, options.key, options.value):
+                    print("Failed to set plugconf")
+                    exit(1)
+            elif options.key:
+                res = cli.get_plugconf(options.setplug, options.key)
+                if res and not res['value'] is None:
+                    print("%s::%s=%s" % (options.setplug, res['key'], res['value']))
+                else:
+                    print("Failed to get plugconf")
+                    exit(1)
+            elif options.delkey:
+                if not cli.del_plugconf(options.setplug, options.delkey):
+                    print("Failed to delete plugconf")
+                    exit(1)
+                else:
+                    print("Plugconf deleted")
+            else:
+                res = cli.list_plugconf(options.setplug)
+                for conf in res["plugconf"]:
+                    print("%s::%s=%s" % (options.setplug, conf['key'], conf['value']))
         else:
             parser.error("incorrect number of arguments")
 
